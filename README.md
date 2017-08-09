@@ -10,7 +10,15 @@ This project extracts all lists found from an input URL. At the moment, it is mo
     
     * Features: height of item, width of item, max depth of item, does node have child node with css + style (one feature per possible child), does node contain entity (date, time, location), does node contain entity with same style?
 
-    * Entity recognizer: gazeteer (homemade list? [DBpedia](http://wiki.dbpedia.org/)), [spaCy](https://github.com/explosion/spaCy) 
+    * Entity recognizer/gazeteer/nlp tools:
+        1. Custom List
+        1. [Who's on First](https://whosonfirst.mapzen.com/) 
+        1. [DBpedia](http://wiki.dbpedia.org/)
+        1. [Yelp dataset](https://www.yelp.com/dataset_challenge)
+        1. [Geonames](http://www.geonames.org/)
+        1. [https://nominatim.openstreetmap.org/](https://nominatim.openstreetmap.org/)
+        1. [https://openaddresses.io/](https://openaddresses.io/)
+        1. [spaCy](https://github.com/explosion/spaCy) 
     
     * Use [chromeless](https://github.com/graphcool/chromeless) to render webpage and gather features from page and return features to calling code
     

@@ -1,0 +1,23 @@
+{
+  "name": "html-list-extraction",
+  "version": "1.0.0",
+  "description": "This project extracts all lists found from an input URL. At the moment, it is mostly just a place for me to put ideas for the project.",
+  "main": "index.js",
+  "dependencies": {
+    "chromeless": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmccarthy/html-list-extraction.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bmccarthy/html-list-extraction/issues"
+  },
+  "homepage": "https://github.com/bmccarthy/html-list-extraction#readme"
+}
