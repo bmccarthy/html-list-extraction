@@ -8,7 +8,7 @@ This project extracts all lists found from an input URL. At the moment, it is mo
 
     * Before calculating feature of indivdiual item, get list of all children nodes + css class names + calculated styles
     
-    * Features: height of item, width of item, max depth of item, does node have child node with css + style (one feature per possible child), does node contain entity (date, time, location), does node contain entity with same style?
+    * Features: height of item, width of item, max depth of item, does node have child node with css + style (one feature per possible child), does node contain entity (date, time, location), does node contain entity with same style? background-color, tag-to-text ratio
 
     * Entity recognizer/gazeteer/nlp tools:
         1. Custom List
