@@ -1,5 +1,16 @@
 import { Chromeless } from 'chromeless';
 
+export interface MyNode {
+  id: number; // id number
+  tag: string; // html tag
+  h: string; // outer html
+  t: string; // inner text
+  cl: string[]; // css classes
+  b: { h: number; w: number; t: number; l: number; }; // client bounding box
+  children: number[]; // children id's
+  computedStyle: { backgroundColor: string; fontFamily: string; fontSize: string; fontWeight: string; visibility: string; color: string; };
+}
+
 export class Test {
   private chromeless: Chromeless<any>;
 
@@ -7,7 +18,23 @@ export class Test {
     this.chromeless = new Chromeless({ launchChrome: false })
   }
 
-  getElements(url): Promise<any[]> {
+  getHtml() {
+    return this.chromeless.html();
+  }
+
+  highlight(ids: number[]) {
+    return this.chromeless.evaluate((arr) => {
+      for (let i = 0; i < arr.length; i++) {
+        document.querySelectorAll(`[data-osc-id="${arr[i]}"]`)[0]['style']["border"] = '5px solid red';
+      }
+    }, ids);
+  }
+
+  screenshot() {
+    return this.chromeless.screenshot();
+  }
+
+  getElements(url): Promise<MyNode[]> {
 
     return this.chromeless
       .goto(url)
@@ -46,7 +73,7 @@ export class Test {
             cl: [].slice.call(node.classList),
             b: {
               h: bounding.height,
-              e: bounding.width,
+              w: bounding.width,
               t: bounding.top,
               l: bounding.left
             }
@@ -59,6 +86,8 @@ export class Test {
           let features: any = getFeatures(item.node);
           features.id = item.id;
           features.children = [];
+
+          item.node.dataset.oscId = item.id
 
           for (let i = 0; i < item.node.children.length; i++) {
             if (SKIP_TAGS.indexOf(item.node.children[i].tagName) === -1) {
@@ -80,12 +109,36 @@ export class Test {
   }
 }
 
+export function unique(arr: MyNode[], func: (a: MyNode) => string) {
+  const flags = {};
+
+  return arr.filter((entry) => {
+    if (flags[func(entry)]) {
+      return false;
+    }
+
+    flags[func(entry)] = true;
+    return true;
+  });
+}
+
+function isNodeEligible(node: MyNode): boolean {
+  return node.b.h > 0 && node.b.w > 0 && node.t.replace(/\s/g, "") !== "" &&
+    (node.children.length > 0 || node.t.split(' ').length > 2);
+}
+
+function nodeFilter(nodeA: MyNode, nodeB: MyNode): boolean {
+  return isNodeEligible(nodeA) && isNodeEligible(nodeB) &&
+    nodeA.id !== nodeB.id && nodeA.tag === nodeB.tag;
+}
+
+function getListItems(parent: MyNode) {
+
+}
+
 async function run() {
   const t = new Test();
   const elements = await t.getElements("http://newhopewinery.com/live-music/");
-
-  await t.end();
-
   const page = {};
   elements.forEach(element => page[element.id] = element);
 
@@ -102,8 +155,8 @@ async function run() {
       const child = children[i];
 
       for (let j = 0; j < children.length; j++) {
-        if (child.id !== children[j].id && child.tagName === children[j].tagName) {
-          // list.push(child);
+        if (nodeFilter(child, children[j])) {
+          list.push(child);
           list.push(children[j]);
         }
       }
@@ -113,7 +166,16 @@ async function run() {
     }
   }
 
-  console.log(list);
+  const uniqueList = unique(list, item => item.id.toString());
+  const ids = uniqueList.map(c => c.id);
+
+  console.log(uniqueList);
+
+  await t.highlight(ids);
+  const screenshotPath = await t.screenshot();
+  console.log(screenshotPath);
+
+  await t.end();
 }
 
 run().catch(console.error.bind(console))
