@@ -126,22 +126,30 @@ function isNodeEligible(node: MyNode): boolean {
     (node.children.length > 0 || node.t.split(' ').length > 2);
 }
 
-function getListForNode(page: Page, nodeId: number): number[] {
+/**
+ * Return a list of all siblings of node childId which appear to be list items with childId
+ * @param page 
+ * @param parentId 
+ * @param childId 
+ */
+function getListForNode(page: Page, parentId: number, childId: number): number[] {
   const list: number[] = [];
-  const node = page[nodeId];
-  const siblings = node.children.map(c => page[c]);
+  const parentNode = page[parentId];
+  const childNode = page[childId];
+  const siblingNodes = parentNode.children.filter(siblingId => siblingId !== childId).map(siblingId => page[siblingId]);
 
-  for (let i = 0; i < siblings.length; i++) {
-    if (node.id === siblings[i].id) continue;
+  // if child node is not possible to be a list item (0 height or width), we can end early
+  if (!isNodeEligible(childNode)) return [];
 
-    const ted = getTreeEditDistance(page, node.id, siblings[i].id);
+  siblingNodes.forEach(siblingNode => {
+    const ted = getTreeEditDistance(page, childNode.id, siblingNode.id);
 
-    if (isNodeEligible(node) && isNodeEligible(siblings[i]) && node.tag === siblings[i].tag) {
-      list.push(siblings[i].id);
+    if (isNodeEligible(siblingNode) && childNode.tag === siblingNode.tag && ted < 20) {
+      list.push(siblingNode.id);
     }
-  }
+  });
 
-  if (list.length > 0) list.unshift(node.id);
+  if (list.length > 0) list.unshift(childNode.id);
 
   return list;
 }
@@ -163,7 +171,7 @@ function getAllListsForParent(page: Page, parent: number) {
 
   page[parent].children.forEach(child => {
 
-    const list = getListForNode(page, child);
+    const list = getListForNode(page, parent, child);
 
     if (list.length > 0 && !doesListExistInOtherList(list, lists)) {
       lists.push(list);
