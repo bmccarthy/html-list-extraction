@@ -1,13 +1,18 @@
 import { Chromeless } from 'chromeless';
+const ed = require('edit-distance');
+
+export interface Page {
+  [id: number]: MyNode;
+}
 
 export interface MyNode {
   id: number; // id number
   tag: string; // html tag
   h: string; // outer html
   t: string; // inner text
-  cl: string[]; // css classes
+  c: string[]; // css classes
   b: { h: number; w: number; t: number; l: number; }; // client bounding box
-  children: number[]; // children id's
+  children: number[]; // children ids
   computedStyle: { backgroundColor: string; fontFamily: string; fontSize: string; fontWeight: string; visibility: string; color: string; };
 }
 
@@ -34,7 +39,7 @@ export class Test {
     return this.chromeless.screenshot();
   }
 
-  getElements(url): Promise<MyNode[]> {
+  getElements(url): Promise<Page> {
 
     return this.chromeless
       .goto(url)
@@ -101,25 +106,19 @@ export class Test {
 
         return JSON.stringify(nodes)
       })
-      .then((elementString: string) => JSON.parse(elementString));
+      .then((elementString: string) => {
+        const elements = JSON.parse(elementString);
+
+        const page: Page = {};
+        elements.forEach(element => page[element.id] = element);
+
+        return page;
+      });
   }
 
   end(): Promise<any> {
     return this.chromeless.end()
   }
-}
-
-export function unique(arr: MyNode[], func: (a: MyNode) => string) {
-  const flags = {};
-
-  return arr.filter((entry) => {
-    if (flags[func(entry)]) {
-      return false;
-    }
-
-    flags[func(entry)] = true;
-    return true;
-  });
 }
 
 function isNodeEligible(node: MyNode): boolean {
@@ -132,50 +131,87 @@ function nodeFilter(nodeA: MyNode, nodeB: MyNode): boolean {
     nodeA.id !== nodeB.id && nodeA.tag === nodeB.tag;
 }
 
-function getListItems(parent: MyNode) {
+function getListForNode(siblings: MyNode[], node: MyNode): number[] {
+  const list: number[] = [];
 
+  for (let i = 0; i < siblings.length; i++) {
+    if (node.id === siblings[i].id) continue;
+
+    if (nodeFilter(node, siblings[i])) {
+      list.push(siblings[i].id);
+    }
+  }
+
+  if (list.length > 0) list.unshift(node.id);
+
+  return list;
+}
+
+function isListsEqual(listA: number[], listB: number[]): boolean {
+  if (listA.sort().join(',') === listB.sort().join(',')) {
+    return true;
+  }
+
+  return false;
+}
+
+function doesListExistInOtherList(listA: number[], lists: number[][]): boolean {
+  return !!lists.find(list => isListsEqual(list, listA));
+}
+
+function getAllListsForParent(page: Page, parent: number) {
+  const lists: number[][] = [];
+
+  const children = page[parent].children.map(c => page[c]);
+
+  children.forEach(child => {
+
+    const list = getListForNode(children, child);
+
+    if (list.length > 0 && !doesListExistInOtherList(list, lists)) {
+      lists.push(list);
+    }
+
+  });
+
+  return lists;
 }
 
 async function run() {
   const t = new Test();
-  const elements = await t.getElements("http://newhopewinery.com/live-music/");
-  const page = {};
-  elements.forEach(element => page[element.id] = element);
+  const page = await t.getElements("http://newhopewinery.com/live-music/");
 
-  const queue = [page[0]];
-
-  const list = [];
+  const queue: number[] = [0]; // start queue with root node
+  let lists: number[][] = [];
 
   while (queue.length > 0) {
     const item = queue.shift();
 
-    let children = item.children.map(c => page[c]);
+    const newLists = getAllListsForParent(page, item);
+    lists = [...newLists, ...lists];
 
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-
-      for (let j = 0; j < children.length; j++) {
-        if (nodeFilter(child, children[j])) {
-          list.push(child);
-          list.push(children[j]);
-        }
-      }
-
-      // return list where child is a member
-      queue.push(child);
-    }
+    page[item].children.forEach(child => queue.push(child));
   }
 
-  const uniqueList = unique(list, item => item.id.toString());
-  const ids = uniqueList.map(c => c.id);
-
-  console.log(uniqueList);
-
+  const ids = [].concat(...lists);
   await t.highlight(ids);
   const screenshotPath = await t.screenshot();
   console.log(screenshotPath);
 
   await t.end();
+}
+
+function getTreeEditDistance(page: Page, rootA: number, rootB: number): number {
+  // Define cost functions.
+  const insert = (node: MyNode) => 1;
+  const remove = (node: MyNode) => 1;
+  const update = (nodeA: MyNode, nodeB: MyNode) => { return nodeA.id !== nodeB.id ? 1 : 0; };
+  const children = (node: MyNode) => node.children.map(c => page[c]);
+
+  // Compute edit distance, mapping, and alignment.
+  const ted = ed.ted(page[rootA], page[rootB], children, insert, remove, update);
+
+  return ted.distance;
 }
 
 run().catch(console.error.bind(console))

@@ -6,6 +6,7 @@
   "dependencies": {
     "chromeless": "^1.2.0",
     "dbscan": "0.0.1",
+    "edit-distance": "^1.0.1",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2"
   },
