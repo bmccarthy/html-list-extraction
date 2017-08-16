@@ -126,18 +126,17 @@ function isNodeEligible(node: MyNode): boolean {
     (node.children.length > 0 || node.t.split(' ').length > 2);
 }
 
-function nodeFilter(nodeA: MyNode, nodeB: MyNode): boolean {
-  return isNodeEligible(nodeA) && isNodeEligible(nodeB) &&
-    nodeA.id !== nodeB.id && nodeA.tag === nodeB.tag;
-}
-
-function getListForNode(siblings: MyNode[], node: MyNode): number[] {
+function getListForNode(page: Page, nodeId: number): number[] {
   const list: number[] = [];
+  const node = page[nodeId];
+  const siblings = node.children.map(c => page[c]);
 
   for (let i = 0; i < siblings.length; i++) {
     if (node.id === siblings[i].id) continue;
 
-    if (nodeFilter(node, siblings[i])) {
+    const ted = getTreeEditDistance(page, node.id, siblings[i].id);
+
+    if (isNodeEligible(node) && isNodeEligible(siblings[i]) && node.tag === siblings[i].tag) {
       list.push(siblings[i].id);
     }
   }
@@ -162,11 +161,9 @@ function doesListExistInOtherList(listA: number[], lists: number[][]): boolean {
 function getAllListsForParent(page: Page, parent: number) {
   const lists: number[][] = [];
 
-  const children = page[parent].children.map(c => page[c]);
+  page[parent].children.forEach(child => {
 
-  children.forEach(child => {
-
-    const list = getListForNode(children, child);
+    const list = getListForNode(page, child);
 
     if (list.length > 0 && !doesListExistInOtherList(list, lists)) {
       lists.push(list);
@@ -188,7 +185,9 @@ async function run() {
     const item = queue.shift();
 
     const newLists = getAllListsForParent(page, item);
-    lists = [...newLists, ...lists];
+    if (newLists.length > 0) {
+      lists = [...newLists, ...lists];
+    }
 
     page[item].children.forEach(child => queue.push(child));
   }
