@@ -1,4 +1,4 @@
-import { Chromeless } from 'chromeless';
+const puppeteer = require('puppeteer');
 const ed = require('edit-distance');
 
 export interface Page {
@@ -17,107 +17,99 @@ export interface MyNode {
 }
 
 export class Test {
-  private chromeless: Chromeless<any>;
-
-  constructor() {
-    this.chromeless = new Chromeless({ launchChrome: false })
-  }
-
-  getHtml() {
-    return this.chromeless.html();
-  }
+  private page: any;
+  private browser: any;
 
   highlight(ids: number[]) {
-    return this.chromeless.evaluate((arr) => {
+    return this.page.evaluate((arr) => {
       for (let i = 0; i < arr.length; i++) {
         document.querySelectorAll(`[data-osc-id="${arr[i]}"]`)[0]['style']["border"] = '5px solid red';
       }
     }, ids);
   }
 
-  screenshot() {
-    return this.chromeless.screenshot();
+  async screenshot(filename) {
+    return await this.page.screenshot({ fullPage: true, path: filename });
   }
 
-  getElements(url): Promise<Page> {
+  async getElements(url): Promise<Page> {
 
-    return this.chromeless
-      .goto(url)
-      .wait(2000) // todo: waiting 2s makes computedStyle.visbility = visible instead of hidden
-      .evaluate(() => {
-        const SKIP_TAGS = ["SCRIPT", "LINK", "STYLE"];
-        const nodes = [];
-        let id = 0;
-        const queue: any[] = [{ id: id, node: document.body }];
+    this.browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    this.page = await this.browser.newPage();
+    await this.page.goto(url, { waitUntil: 'networkidle' });
+    const elementsString = await this.page.evaluate(() => {
+      const SKIP_TAGS = ["SCRIPT", "LINK", "STYLE"];
+      const nodes = [];
+      let id = 0;
+      const queue: any[] = [{ id: id, node: document.body }];
 
-        function getFeatures(node) {
-          const computedStyle = getComputedStyle(node);
+      function getFeatures(node) {
+        const computedStyle = getComputedStyle(node);
 
-          const STYLES = [
-            "backgroundColor",
-            "fontFamily",
-            "fontSize",
-            "fontStyle",
-            "fontWeight",
-            "visibility",
-            "color"
-          ];
+        const STYLES = [
+          "backgroundColor",
+          "fontFamily",
+          "fontSize",
+          "fontStyle",
+          "fontWeight",
+          "visibility",
+          "color"
+        ];
 
-          let filteredComputedStyle = {};
-          STYLES.forEach(style => {
-            filteredComputedStyle[style] = computedStyle[style];
-          });
+        let filteredComputedStyle = {};
+        STYLES.forEach(style => {
+          filteredComputedStyle[style] = computedStyle[style];
+        });
 
-          const bounding = node.getBoundingClientRect();
+        const bounding = node.getBoundingClientRect();
 
-          return {
-            tag: node.tagName,
-            h: node.outerHTML,
-            t: node.innerText,
-            computedStyle: filteredComputedStyle,
-            cl: [].slice.call(node.classList),
-            b: {
-              h: bounding.height,
-              w: bounding.width,
-              t: bounding.top,
-              l: bounding.left
-            }
-          };
-        }
-
-        while (queue.length > 0) {
-          const item = queue.shift();
-
-          let features: any = getFeatures(item.node);
-          features.id = item.id;
-          features.children = [];
-
-          item.node.dataset.oscId = item.id
-
-          for (let i = 0; i < item.node.children.length; i++) {
-            if (SKIP_TAGS.indexOf(item.node.children[i].tagName) === -1) {
-              queue.push({ id: ++id, node: item.node.children[i] });
-              features.children.push(id);
-            }
+        return {
+          tag: node.tagName,
+          h: node.outerHTML,
+          t: node.innerText,
+          computedStyle: filteredComputedStyle,
+          cl: [].slice.call(node.classList),
+          b: {
+            h: bounding.height,
+            w: bounding.width,
+            t: bounding.top,
+            l: bounding.left
           }
+        };
+      }
 
-          nodes.push(features);
+      while (queue.length > 0) {
+        const item = queue.shift();
+
+        let features: any = getFeatures(item.node);
+        features.id = item.id;
+        features.children = [];
+
+        item.node.dataset.oscId = item.id
+
+        for (let i = 0; i < item.node.children.length; i++) {
+          if (SKIP_TAGS.indexOf(item.node.children[i].tagName) === -1) {
+            queue.push({ id: ++id, node: item.node.children[i] });
+            features.children.push(id);
+          }
         }
 
-        return JSON.stringify(nodes)
-      })
-      .then((elementString: string) => {
-        const elements = JSON.parse(elementString);
+        nodes.push(features);
+      }
 
-        const page: Page = {};
-        elements.forEach(element => page[element.id] = element);
+      return JSON.stringify(nodes)
+    });
 
-        return page;
-      });
+    const elements = JSON.parse(elementsString);
+
+    const page: Page = {};
+    elements.forEach(element => page[element.id] = element);
+
+    return page;
   }
 
-  end(): Promise<any> {
-    return this.chromeless.end()
+  end() {
+    this.browser.close();
   }
 }
 
@@ -183,8 +175,10 @@ function getAllListsForParent(page: Page, parent: number) {
 }
 
 async function run() {
+  const url = "http://newhopewinery.com/live-music/";
+
   const t = new Test();
-  const page = await t.getElements("http://newhopewinery.com/live-music/");
+  const page = await t.getElements(url);
 
   const queue: number[] = [0]; // start queue with root node
   let lists: number[][] = [];
@@ -202,9 +196,8 @@ async function run() {
 
   const ids = [].concat(...lists);
   await t.highlight(ids);
-  const screenshotPath = await t.screenshot();
-  console.log(screenshotPath);
-
+  await t.screenshot("./images/test.jpg");
+  
   await t.end();
 }
 

@@ -4,9 +4,11 @@
   "description": "This project extracts all lists found from an input URL. At the moment, it is mostly just a place for me to put ideas for the project.",
   "main": "index.js",
   "dependencies": {
-    "chromeless": "^1.2.0",
+    "@types/node": "^8.0.23",
     "dbscan": "0.0.1",
     "edit-distance": "^1.0.1",
+    "parse-domain": "^1.1.0",
+    "puppeteer": "^0.9.0",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2"
   },
