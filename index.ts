@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const ed = require('edit-distance');
+const parseDomain = require('parse-domain');
 
 export interface Page {
   [id: number]: MyNode;
@@ -196,7 +197,7 @@ async function run() {
 
   const ids = [].concat(...lists);
   await t.highlight(ids);
-  await t.screenshot("./images/test.jpg");
+  await t.screenshot(`./images/${parseDomain(url).domain}.jpg`);
   
   await t.end();
 }
