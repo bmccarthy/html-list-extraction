@@ -24,7 +24,10 @@ export class Test {
   async highlight(ids: number[]) {
     await this.page.evaluate((arr) => {
       for (let i = 0; i < arr.length; i++) {
-        document.querySelectorAll(`[data-osc-id="${arr[i]}"]`)[0]['style']["border"] = '5px solid red';
+        const elements = document.querySelectorAll(`[data-osc-id="${arr[i]}"]`);
+        if (elements.length > 0) {
+          elements[0]['style']["border"] = '5px solid red';
+        }
       }
     }, ids);
   }
