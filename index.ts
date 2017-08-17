@@ -21,8 +21,8 @@ export class Test {
   private page: any;
   private browser: any;
 
-  highlight(ids: number[]) {
-    return this.page.evaluate((arr) => {
+  async highlight(ids: number[]) {
+    await this.page.evaluate((arr) => {
       for (let i = 0; i < arr.length; i++) {
         document.querySelectorAll(`[data-osc-id="${arr[i]}"]`)[0]['style']["border"] = '5px solid red';
       }
@@ -37,6 +37,8 @@ export class Test {
 
     this.browser = await puppeteer.launch({ args: ['--no-sandbox'] });
     this.page = await this.browser.newPage();
+    await this.page.setViewport({ width: 1400, height: 900 });
+
     await this.page.goto(url, { waitUntil: 'networkidle' });
     const elementsString = await this.page.evaluate(() => {
       const SKIP_TAGS = ["SCRIPT", "LINK", "STYLE"];
@@ -198,8 +200,8 @@ async function run() {
   const ids = [].concat(...lists);
   await t.highlight(ids);
   await t.screenshot(`./images/${parseDomain(url).domain}.jpg`);
-  
-  await t.end();
+
+  t.end();
 }
 
 function getTreeEditDistance(page: Page, rootA: number, rootB: number): number {
