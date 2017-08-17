@@ -108,6 +108,8 @@ export class Test {
     const page: Page = {};
     elements.forEach(element => page[element.id] = element);
 
+    page["-1"] = { children: [], id: -1, tag: '', t: '', h: '' };
+
     return page;
   }
 
@@ -136,10 +138,14 @@ function getListForNode(page: Page, parentId: number, childId: number): number[]
   // if child node is not possible to be a list item (0 height or width), we can end early
   if (!isNodeEligible(childNode)) return [];
 
-  siblingNodes.forEach(siblingNode => {
-    const ted = getTreeEditDistance(page, childNode.id, siblingNode.id);
+  const threshold = 20;
+  const maxEditDistance = getTreeEditDistance(page, childNode.id, -1);
 
-    if (isNodeEligible(siblingNode) && childNode.tag === siblingNode.tag && ted < 20) {
+  siblingNodes.forEach(siblingNode => {
+    const editDistance = getTreeEditDistance(page, childNode.id, siblingNode.id)
+    const ted = editDistance / maxEditDistance;
+
+    if (isNodeEligible(siblingNode) && childNode.tag === siblingNode.tag && editDistance < threshold) {
       list.push(siblingNode.id);
     }
   });
