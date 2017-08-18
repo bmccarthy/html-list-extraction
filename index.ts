@@ -1,4 +1,6 @@
-const puppeteer = require('puppeteer');
+// const puppeteer = require('puppeteer');
+import * as Puppeteer from 'puppeteer'
+
 const ed = require('edit-distance');
 const parseDomain = require('parse-domain');
 
@@ -38,7 +40,7 @@ export class Test {
 
   async getElements(url): Promise<Page> {
 
-    this.browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    this.browser = await Puppeteer.launch({ args: ['--no-sandbox'] });
     this.page = await this.browser.newPage();
     await this.page.setViewport({ width: 1400, height: 900 });
 
