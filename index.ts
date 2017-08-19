@@ -1,8 +1,6 @@
-// const puppeteer = require('puppeteer');
-import * as Puppeteer from 'puppeteer'
-
-const ed = require('edit-distance');
-const parseDomain = require('parse-domain');
+import * as Puppeteer from 'puppeteer';
+import * as ed from 'edit-distance';
+import * as parseDomain from 'parse-domain';
 
 export interface Page {
   [id: number]: MyNode;
@@ -28,7 +26,7 @@ export class Test {
       for (let i = 0; i < arr.length; i++) {
         const elements = document.querySelectorAll(`[data-osc-id="${arr[i]}"]`);
         if (elements.length > 0) {
-          elements[0]['style']["border"] = '5px solid red';
+          elements[0]['style']["border"] = '1px solid red';
         }
       }
     }, ids);
@@ -40,7 +38,7 @@ export class Test {
 
   async getElements(url): Promise<Page> {
 
-    this.browser = await Puppeteer.launch({ args: ['--no-sandbox'] });
+    this.browser = await Puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
     this.page = await this.browser.newPage();
     await this.page.setViewport({ width: 1400, height: 900 });
 
@@ -113,13 +111,14 @@ export class Test {
     const page: Page = {};
     elements.forEach(element => page[element.id] = element);
 
+    // add a default node with 0 children and no tag name
     page["-1"] = { children: [], id: -1, tag: '', t: '', h: '' };
 
     return page;
   }
 
   end() {
-    this.browser.close();
+    // this.browser.close();
   }
 }
 
