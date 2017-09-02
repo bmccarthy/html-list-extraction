@@ -44,7 +44,7 @@ export class Test {
 
     await this.page.goto(url, { waitUntil: 'networkidle' });
     const elementsString = await this.page.evaluate(() => {
-      const SKIP_TAGS = ["SCRIPT", "LINK", "STYLE"];
+      const SKIP_TAGS = ["SCRIPT", "LINK", "STYLE", "BR", "SELECT", "OPTION"];
       const nodes = [];
       let id = 0;
       const queue: any[] = [{ id: id, node: document.body }];
@@ -188,7 +188,7 @@ function getAllListsForParent(page: Page, parent: number) {
 }
 
 async function run() {
-  const url = "http://newhopewinery.com/live-music/";
+  const url = "https://www.stnj.org/events/upcoming-events";
 
   const t = new Test();
   const page = await t.getElements(url);
